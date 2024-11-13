@@ -109,6 +109,31 @@ dev.off()
 
 #-------------------------------------------------------------------------------
 
+
+harmonized <- readRDS("../hdrg_proteomics/data/multi-omics/DRG_nonneurons_human.rds")
+
+Seurat::Assays(harmonized)
+Seurat::Idents(harmonized) <- "Atlas_annotation"
+
+Seurat::DotPlot(harmonized, 
+                assay ="RNA",
+                features = c("Raet1a", "Raet1b", "Raet1c", "Raet1d", "Raet1e", "Raet1f", "Raet1g", "Raet1l", 
+                             "Ulbp1", "Ulbp2", "Ulbp3", "Mill2")) + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1)) 
+
+
+pdf(paste0(PATH_results, "harmonized_non-neuronal_dots.pdf"), height = 6, width = 5)
+Seurat::DotPlot(harmonized, 
+                assay ="RNA",
+                features = c("Raet1a", "Raet1b", "Raet1c", "Raet1d", "Raet1e", "Raet1f", "Raet1g", "Raet1l", 
+                             "Ulbp1", "Ulbp2", "Ulbp3", "Mill2")) + 
+  theme(axis.text.x = element_text(angle = 45, hjust=1)) 
+dev.off()
+
+#-------------------------------------------------------------------------------
+
+
+
 visium.lumbar <- readRDS("../pig_deconvolution/data/drg.combined.human_forCONOS.rds")
 
 Seurat::Assays(visium.lumbar)
@@ -160,7 +185,7 @@ wangzhou_meta <- read.csv("../hdrg_proteomics/data/multi-omics/wangzhou2020_meta
 gene_data <- wangzhou %>%
   filter(gene %in% c("RAET1A", "RAET1B", "RAET1C", "RAET1D", "RAET1E", "RAET1F", "RAET1G", "RAET1L",
                      "ULBP1", "ULBP2", "ULBP3", "ULBP4", "ULBP5", "ULBP6",
-                     "MICA", "MICB"))
+                     "MICA", "MICB", "P2RX3"))
 
 gene_data <- gene_data %>%
   pivot_longer(cols = starts_with("hDIV") | starts_with("hDRG"), 
@@ -211,4 +236,119 @@ print(g)
 pdf(paste0(PATH_results, "wangzhou_boxplot.pdf"), height = 5, width = 7)
 print(g)
 dev.off()
+
+#-------------------------------------------------------------------------------
+
+library(data.table)
+library(sctransform)
+library(Seurat)
+
+lu_data <- fread("./data/GSE249746_Expression_matrix_raw_counts.csv.gz")
+
+lu_data <- as.data.frame(lu_data)
+rownames(lu_data) <- lu_data$V1
+lu_data$V1 <- NULL
+
+# ss.data <- CreateSeuratObject(counts = lu_data, project = "lu_singlesomma")
+# ss.data[["percent.mt"]] <- PercentageFeatureSet(ss.data, pattern = "^MT-")
+# VlnPlot(ss.data, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
+# 
+# ss.data <- SCTransform(ss.data, vars.to.regress = "percent.mt", verbose = FALSE)
+# 
+# ss.data <- RunPCA(ss.data, verbose = FALSE)
+# ss.data <- RunUMAP(ss.data, dims = 1:30, verbose = FALSE)
+# 
+# ss.data <- FindNeighbors(ss.data, dims = 1:30, verbose = FALSE)
+# ss.data <- FindClusters(ss.data, verbose = FALSE)
+# ss.data <- DimPlot(ss.data, label = TRUE)
+
+donor_ids <- unique(sub("^(\\w+-\\w+)-.*", "\\1", colnames(lu_data)))
+
+# Loop through each donor ID to create a Seurat object
+seurat_objects <- list()
+for (donor in donor_ids) {
+  donor_data <- lu_data[, grepl(paste0("^", donor, "-"), colnames(lu_data))]
+  seurat_obj <- CreateSeuratObject(counts = donor_data)
+
+  seurat_obj <- NormalizeData(seurat_obj)
+  #seurat_obj <- ScaleData(seurat_obj)
+  seurat_obj <- FindVariableFeatures(seurat_obj, nfeatures = 4500)
+
+  seurat_objects[[donor]] <- seurat_obj
+}
+
+ss.data <- FindIntegrationAnchors(object.list = seurat_objects,
+  scale=TRUE, 
+  normalization.method="LogNormalize",
+  reduction="cca", 
+  l2.norm = TRUE,
+  dims=1:30, 
+  k.anchor=5, 
+  k.filter=200, 
+  k.score=30, 
+  max.features=200,
+  nn.method="annoy", 
+  n.trees=50, 
+  eps=0)
+
+ss.data <- IntegrateData(ss.data,
+  normalization.method="LogNormalize", 
+  features=NULL, 
+  features.to.integrate=NULL, 
+  dims=1:30, 
+  k.weight=80, 
+  weight.reduction=NULL, 
+  sd.weight=1, 
+  sample.tree=NULL, 
+  preserve.order=FALSE, 
+  eps=0) 
+
+ss.data <- ScaleData(ss.data)
+ss.data <- RunPCA(ss.data, npcs=50)
+
+ss.data <- RunUMAP(ss.data, reduction="pca", dims=1:25)
+ss.data <- FindNeighbors(ss.data, reduction="pca", dims=1:25) 
+ss.data <- FindClusters(ss.data, resolution=3.4)
+
+saveRDS(ss.data, "./data/lu-singlesoma.RDS")
+
+DimPlot(ss.data, reduction = "umap")
+
+table(Idents(ss.data))
+
+# Highly similar clusters without clearly distinguishable markers
+# were merged to produce the final 16 clusters.
+
+load("./data/human_meta_final_cluster.Rdata")
+
+ss.data@meta.data <- human_meta_final_cluster
+ss.data <- SetIdent(ss.data, value = ss.data@meta.data$cl.conserv_final)
+
+library(ggplot2)
+
+# Seurat::FeaturePlot(ss.data,
+#                 features = c("TRPM8", "TRPV1", "CHRNA7", "SST", 
+#                              "MRGPRX1", "PIEZO2", "KIT", "NTRK2",
+#                              "TRPA1", "NTRK3", "PVALB")) + theme(axis.text.x = element_text(angle = 45, hjust=1)) 
+
+Seurat::DotPlot(ss.data,
+                assay ="RNA",
+                features = c("TRPM8", "TRPV1", "CHRNA7", "SST", 
+                             "MRGPRX1", "PIEZO2", "KIT", "NTRK2",
+                             "TRPA1", "NTRK3", "PVALB")) + theme(axis.text.x = element_text(angle = 45, hjust=1)) 
+
+
+PATH_results = "./output/"
+
+pdf(paste0(PATH_results, "ss_dots_named.pdf"), height = 5, width = 6)
+Seurat::DotPlot(ss.data, 
+                assay ="RNA",
+                features = c("RAET1A", "RAET1B", "RAET1C", "RAET1D", "RAET1E", "RAET1F", "RAET1G", "RAET1L",
+                             "ULBP1", "ULBP2", "ULBP3", "ULBP4", "ULBP5", "ULBP6",
+                             "MICA", "MICB")) + theme(axis.text.x = element_text(angle = 45, hjust=1)) 
+dev.off()
+
+
+
+
 
