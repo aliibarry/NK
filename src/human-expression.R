@@ -348,7 +348,7 @@ Seurat::DotPlot(ss.data,
                              "MICA", "MICB")) + theme(axis.text.x = element_text(angle = 45, hjust=1)) 
 dev.off()
 
-
+saveRDS(ss.data, "./data/lu-singlesoma.RDS")
 
 
 
