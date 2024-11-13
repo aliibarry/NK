@@ -38,14 +38,18 @@ col_names <- colnames(mat)
 
 # need to check what the metadata actually is; placeholder here.
 metadata <- data.frame(
-  sample    = col_names,
-  condition = ifelse(grepl("^DRG", col_names), "DRG", sub("_.*", "", col_names)), 
-  line      = ifelse(grepl("^DRG", col_names), "DRG", sub(".*_", "", col_names))     
+  sample    = col_names
 )
 
 metadata <- metadata %>%
-  mutate(group = ifelse(grepl("^DRG", sample), "DRG", "ipsc"))
-
+  mutate(group = case_when(
+    grepl("^N", sample) ~ "iPSC-SN",            # Names starting with "N"
+    grepl("^ON_", sample) ~ "old-SN",      # "ON1" or "ON2"
+    grepl("^ONS", sample) ~ "old-SN-serine",    # Names starting with "ONS"
+    grepl("^DRG", sample) ~ "DRG",              # Names starting with "DRG"
+    grepl("^i", sample) ~ "iPSC",               # Names starting with "i"
+    TRUE ~ NA_character_                        # Default case if no match
+  ))
 
 head(metadata)
 
@@ -57,18 +61,22 @@ gene_data <- mat %>%
 gene_data <- gene_data %>%
   left_join(metadata, by = c("sample" = "sample"))
 
-# Create the plot with ggplot
-metadata$condition <- as.factor(metadata$condition)
 metadata$group     <- as.factor(metadata$group)
+
+gene_data <- gene_data[gene_data$group %in% c("iPSC", "iPSC-SN"), ] #, "DRG"
 
 ggplot(gene_data, aes(x = symbol, y = expression, fill = group)) +
   geom_boxplot() +
   labs(title = "",
        x = "",
-       y = "TPM") + theme_bw() +
+       y = "Expression") + theme_bw() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) 
 
-
 pdf(paste0(PATH_results, "ipsc_boxplot.pdf"), height = 5, width = 7)
-print(g)
+ggplot(gene_data, aes(x = symbol, y = expression, fill = group)) +
+  geom_boxplot() +
+  labs(title = "",
+       x = "",
+       y = "Expression") + theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) 
 dev.off()
