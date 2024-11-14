@@ -132,8 +132,6 @@ dev.off()
 
 #-------------------------------------------------------------------------------
 
-
-
 visium.lumbar <- readRDS("../pig_deconvolution/data/drg.combined.human_forCONOS.rds")
 
 Seurat::Assays(visium.lumbar)
@@ -150,7 +148,7 @@ Seurat::DotPlot(visium.lumbar,
                 assay ="RNA",
                 features = c("RAET1A", "RAET1B", "RAET1C", "RAET1D", "RAET1E", "RAET1F", "RAET1G", "RAET1L",
                              "ULBP1", "ULBP2", "ULBP3", "ULBP4", "ULBP5", "ULBP6",
-                             "MICA", "MICB")) + theme(axis.text.x = element_text(angle = 45, hjust=1)) 
+                             "MICA", "MICB", "OPMR1")) + theme(axis.text.x = element_text(angle = 45, hjust=1)) 
 dev.off()
 
 
@@ -318,18 +316,17 @@ table(Idents(ss.data))
 
 # Highly similar clusters without clearly distinguishable markers
 # were merged to produce the final 16 clusters.
-
 load("./data/human_meta_final_cluster.Rdata")
 
 ss.data@meta.data <- human_meta_final_cluster
 ss.data <- SetIdent(ss.data, value = ss.data@meta.data$cl.conserv_final)
 
-library(ggplot2)
-
 # Seurat::FeaturePlot(ss.data,
 #                 features = c("TRPM8", "TRPV1", "CHRNA7", "SST", 
 #                              "MRGPRX1", "PIEZO2", "KIT", "NTRK2",
 #                              "TRPA1", "NTRK3", "PVALB")) + theme(axis.text.x = element_text(angle = 45, hjust=1)) 
+
+ss.data <- readRDS("./data/lu-singlesoma.RDS")
 
 Seurat::DotPlot(ss.data,
                 assay ="RNA",
@@ -345,7 +342,7 @@ Seurat::DotPlot(ss.data,
                 assay ="RNA",
                 features = c("RAET1A", "RAET1B", "RAET1C", "RAET1D", "RAET1E", "RAET1F", "RAET1G", "RAET1L",
                              "ULBP1", "ULBP2", "ULBP3", "ULBP4", "ULBP5", "ULBP6",
-                             "MICA", "MICB")) + theme(axis.text.x = element_text(angle = 45, hjust=1)) 
+                             "MICA", "MICB", "SCN10A")) + theme(axis.text.x = element_text(angle = 45, hjust=1)) 
 dev.off()
 
 saveRDS(ss.data, "./data/lu-singlesoma.RDS")

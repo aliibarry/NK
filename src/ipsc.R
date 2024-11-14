@@ -14,10 +14,15 @@ input$refseq_mrna <- NULL
 
 input <- input[!duplicated(input),]
 
+input <- input %>%
+  filter(symbol %in% c("RAET1A", "RAET1B", "RAET1C", "RAET1D", "RAET1E", "RAET1F", "RAET1G", "RAET1L",
+                       "ULBP1", "ULBP2", "ULBP3", "ULBP4", "ULBP5", "ULBP6",
+                       "MICA", "MICB", "P2RX3"))
+
 g <- ggplot(input, aes(x = log2FoldChange, y = -log10(pvalue))) 
-g <- g + geom_point(color = "#B63679ff", size = 4) 
+g <- g + geom_point(color = "#B63679ff", size = 7) 
 g <- g + theme(aspect.ratio=1) + theme_bw() +
-  ggrepel::geom_text_repel(aes(label=symbol), size=4, segment.alpha= 0.2, force =2, max.overlaps=16) +
+  ggrepel::geom_text_repel(aes(label=symbol), size=5, segment.alpha= 0.2, force =2, max.overlaps=16) +
   labs(title = "Volcano Plot",
        x = "Log2 Fold Change",
        y = "-log10(pvalue)") +
@@ -31,12 +36,10 @@ dev.off()
 
 #-------------------------------------------------------------------------------
 
-mat   <- read.csv("./data/RE_ NK in human sequencing data/genes_eset_alex.csv", row.names = 1)
-rownames(mat) <- mat$symbol
+mat   <- read.csv("./data/RE_ NK in human sequencing data/genes_eset_alex_TPM-symbol.csv")
 
 col_names <- colnames(mat)
 
-# need to check what the metadata actually is; placeholder here.
 metadata <- data.frame(
   sample    = col_names
 )
@@ -63,13 +66,18 @@ gene_data <- gene_data %>%
 
 metadata$group     <- as.factor(metadata$group)
 
-gene_data <- gene_data[gene_data$group %in% c("iPSC", "iPSC-SN"), ] #, "DRG"
+gene_data <- gene_data[gene_data$group %in% c("iPSC", "iPSC-SN"), ]
+
+gene_data <- gene_data %>%
+  filter(symbol %in% c("RAET1A", "RAET1B", "RAET1C", "RAET1D", "RAET1E", "RAET1F", "RAET1G", "RAET1L",
+                     "ULBP1", "ULBP2", "ULBP3", "ULBP4", "ULBP5", "ULBP6",
+                     "MICA", "MICB", "P2RX3"))
 
 ggplot(gene_data, aes(x = symbol, y = expression, fill = group)) +
   geom_boxplot() +
   labs(title = "",
        x = "",
-       y = "Expression") + theme_bw() +
+       y = "TPM") + theme_bw() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) 
 
 pdf(paste0(PATH_results, "ipsc_boxplot.pdf"), height = 5, width = 7)
@@ -77,6 +85,6 @@ ggplot(gene_data, aes(x = symbol, y = expression, fill = group)) +
   geom_boxplot() +
   labs(title = "",
        x = "",
-       y = "Expression") + theme_bw() +
+       y = "TPM") + theme_bw() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) 
 dev.off()
