@@ -130,6 +130,11 @@ Seurat::DotPlot(harmonized,
   theme(axis.text.x = element_text(angle = 45, hjust=1)) 
 dev.off()
 
+features = c("KLRC1", "KIT", "KLRD1", "CD56", "CXCR3", "ICAM1", "NCR1")
+
+FeaturePlot(harmonized, features = features)
+DimPlot(harmonized)
+
 #-------------------------------------------------------------------------------
 
 visium.lumbar <- readRDS("../pig_deconvolution/data/drg.combined.human_forCONOS.rds")
