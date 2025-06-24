@@ -58,24 +58,28 @@ seu.immune <- RunUMAP(seu.immune, dims = 1:10)
 DimPlot(seu.immune, reduction = "umap", label = TRUE)
 
 # check for non-neuronal clusters after neuron-specific clustering
-features <- c(
-  "Acap1", "Tmc8", "Cd3e", "Cd8a",                  # T cells
-  "Myh11", "Acta2",                                 # SMCs
-  "Fabp7", "Apoe", "Serpina5", "Aatk", "Lgi4", "Gnai1",  # SCGs (note: "GIAI" likely meant "GNAI1")
-  "Tinagl1", "Notch3",                              # Pericytes
-  "Mpz", "Mbp", "Ncam1", "Scn7a", "Mlip", "Prx",    # Schwann
-  "Snap25", "Prph", "Tubb2a", "Rbfox3",             # Neurons
-  "Plcb2", "Csf1r",                                 # Monocytes
-  "Col1a1", "Podn", "Dcn", "Pi16", "Pdgfra",        # Fibroblasts
-  "Vwf", "Egfl7", "Cd34", "Tek",                    # Endothelial
-  "Plin4", "Plin1", "Cidea", "Adipoq", "Fabp4",     # Adipocytes
-  "Cd14", "Cd163", "Ptprc",                         # Immune
-  "Tmsb10", "Tmsb4x"                                # Misc / junk
-)
+# features <- c(
+#   "Acap1", "Tmc8", "Cd3e", "Cd8a",                  # T cells
+#   "Myh11", "Acta2",                                 # SMCs
+#   "Fabp7", "Apoe", "Serpina5", "Aatk", "Lgi4", "Gnai1",  # SCGs (note: "GIAI" likely meant "GNAI1")
+#   "Tinagl1", "Notch3",                              # Pericytes
+#   "Mpz", "Mbp", "Ncam1", "Scn7a", "Mlip", "Prx",    # Schwann
+#   "Snap25", "Prph", "Tubb2a", "Rbfox3",             # Neurons
+#   "Plcb2", "Csf1r",                                 # Monocytes
+#   "Col1a1", "Podn", "Dcn", "Pi16", "Pdgfra",        # Fibroblasts
+#   "Vwf", "Egfl7", "Cd34", "Tek",                    # Endothelial
+#   "Plin4", "Plin1", "Cidea", "Adipoq", "Fabp4",     # Adipocytes
+#   "Cd14", "Cd163", "Ptprc",                         # Immune
+#   "Tmsb10", "Tmsb4x"                                # Misc / junk
+# )
 
 # NK features
 features <- c("Klrd1", "Nkg7", "Gnly", "Gzmb",   
   "Prf1", "Klrf1", "Fcgr3", "Klrc1", "Klrc2", "Klrc3", "Klrc4", "Il2rb", "Klrk1")
+
+features <- c("Chst12", "Cst7", "Gnly", "Gzmb", "Gzmc", 
+            "Il18rap", "Il2rb", "Klrc1", "Klrc3", "Klrd1", "Klrf1", "Klrk1",
+            "Prf1", "Xcl1")
 
 DotPlot(seu.immune, scale = TRUE,
         features = features, 
@@ -100,7 +104,7 @@ g1 <- ggplot(df1, aes(x = umap_1, y = umap_2)) +
   geom_point(color = "lightgrey", size = 0.5) +
   # Foreground: only cells expressing Klrd1
   geom_point(data = subset(df1, Klrd1 > 0), 
-             aes(color = Klrd1), size = 1.5) +
+             aes(color = Klrd1), size = 1) +
   scale_color_viridis_c(option = "plasma") +
   theme_bw()
 
@@ -109,14 +113,14 @@ g2 <- ggplot(df2, aes(x = umap_1, y = umap_2)) +
   geom_point(color = "lightgrey", size = 0.5) +
   # Foreground: only cells expressing Klrc1
   geom_point(data = subset(df2, Klrk1 > 0), 
-             aes(color = Klrk1), size = 1.5) +
+             aes(color = Klrk1), size = 1) +
   scale_color_viridis_c(option = "plasma") +
   theme_bw()
 
 g3 <- DimPlot(seu.immune) + theme_bw()
 
 
-pdf(paste0(PATH_results, "immune_NKs.pdf"), height = 4, width = 13)
+pdf(paste0(PATH_results, "immune_NKs.pdf"), height = 4, width = 14)
 g1 + g2 + g3
 dev.off()
 
@@ -125,3 +129,12 @@ DotPlot(seu.immune, scale = TRUE,
         features = features, 
         assay ="RNA") + theme(axis.text.x = element_text(angle = 45, hjust = 1))
 dev.off()
+
+#-------------------------------------------------------------------------------
+
+df <- read.csv("./data/Heming2025_expression_details_klrk1.csv")
+
+ggplot(df, aes(x = group, y = expression_level, fill = group)) +
+  geom_violin() + theme_bw()
+
+table(df$group, df$sample)
